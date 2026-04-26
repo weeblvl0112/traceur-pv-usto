@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PFE Master 2 — Modélisation et Caractérisation I-V d'un Panneau PV via IoT & Optimisation Nelder-Mead</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --accent: #f59e0b;
+            --accent-dark: #d97706;
+            --success: #10b981;
+            --dark: #0f172a;
+            --text: #334155;
+            --text-light: #64748b;
+            --bg: #ffffff;
+            --bg-soft: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 0;
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+        .nav-logo {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-logo i { color: var(--accent); }
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            list-style: none;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 500;
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .nav-links a:hover {
+            color: var(--primary);
+            background: var(--bg-soft);
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1e40af 100%);
+            color: white;
+            padding: 80px 24px 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero-content {
+            position: relative;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .hero h1 {
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 0 auto 32px;
+            font-weight: 300;
+        }
+        .hero-meta {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.85;
+        }
+        .hero-meta span { display: flex; align-items: center; gap: 8px; }
+
+        /* Container */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Sections */
+        section {
+            padding: 60px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        section:last-of-type { border-bottom: none; }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        h2 i { color: var(--primary-light); }
+
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin: 32px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+            display: inline-block;
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 24px 0 12px;
+        }
+
+        p { margin-bottom: 16px; text-align: justify; }
+
+        /* Info boxes */
+        .info-box {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 4px solid var(--primary-light);
+            padding: 20px 24px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+        }
+        .info-box.warning {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border-left-color: var(--accent);
+        }
+        .info-box.success {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-left-color: var(--success);
+        }
+        .info-box h4 { margin-top: 0; color: var(--primary); }
+        .info-box p:last-child { margin-bottom: 0; }
+
+        /* Formula boxes */
+        .formula-box {
+            background: var(--bg-soft);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            margin: 24px 0;
+            text-align: center;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 1.05rem;
+            color: var(--dark);
+            overflow-x: auto;
+            line-height: 1.8;
+        }
+        .formula-inline {
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.95em;
+            color: var(--primary);
+        }
+
+        /* Fraction styling */
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            font-size: 0.95em;
+            margin: 0 2px;
+        }
+        .frac-num {
+            border-bottom: 1.5px solid var(--dark);
+            padding: 0 4px;
+            text-align: center;
+        }
+        .frac-den {
+            padding: 0 4px;
+            text-align: center;
+        }
+        .sqrt {
+            display: inline-flex;
+            align-items: flex-start;
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+        .sqrt-symbol {
+            font-size: 1.4em;
+            line-height: 1;
+            margin-right: 2px;
+        }
+        .sqrt-content {
+            border-top: 1.5px solid var(--dark);
+            padding-top: 2px;
+        }
+        .sum-symbol {
+            font-size: 1.3em;
+            vertical-align: middle;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 16px 0 16px 24px;
+        }
+        li { margin-bottom: 10px; }
+
+        /* Cards grid */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin: 24px 0;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        .card h4 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+        .card h4 i { color: var(--accent); }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin: 32px 0;
+        }
+        .stat {
+            background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        .stat.orange { background: linear-gradient(135deg, #ea580c 0%, #fb923c 100%); }
+        .stat.green { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+        .stat.purple { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 8px 0;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 24px 0;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th {
+            background: var(--bg-soft);
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark);
+            border-bottom: 2px solid var(--border);
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        tr:hover { background: var(--bg-soft); }
+
+        /* Images */
+        .img-container {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            border: 1px solid var(--border);
+            margin: 24px 0;
+        }
+        .img-container img {
+            max-width: 100%;
+            border-radius: 10px;
+            object-fit: contain;
+        }
+        .img-caption {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        /* SVG Diagrams */
+        .diagram {
+            background: var(--bg-soft);
+            border-radius: 16px;
+            padding: 32px;
+            margin: 24px 0;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .diagram-caption {
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        /* Highlight */
+        .highlight {
+            background: linear-gradient(120deg, #fef3c7 0%, #fef3c7 100%);
+            background-repeat: no-repeat;
+            background-size: 100% 40%;
+            background-position: 0 88%;
+            padding: 0 4px;
+            font-weight: 600;
+        }
+
+        /* Step / Numbered feature */
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 24px 0;
+        }
+        .feature-item {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .feature-num {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .feature-content h4 { margin: 0 0 6px; }
+        .feature-content p { margin: 0; }
+
+        /* Nelder-Mead specific */
+        .algo-step {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+            position: relative;
+            padding-left: 60px;
+        }
+        .algo-step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 16px;
+            top: 20px;
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 48px 24px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        footer h3 { color: white; border: none; margin-bottom: 16px; }
+        footer p { opacity: 0.8; max-width: 600px; margin: 0 auto; }
+
+        /* Scroll top */
+        .scroll-top {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+            z-index: 999;
+        }
+        .scroll-top.visible { opacity: 1; pointer-events: all; }
+        .scroll-top:hover { transform: translateY(-4px); background: var(--primary-light); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero { padding: 60px 24px 80px; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            section { padding: 40px 0; }
+            .formula-box { font-size: 0.9rem; padding: 20px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-solar-panel"></i>
+                <span>PFE Master 2 — PV & IoT</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#contexte">Contexte</a></li>
+                <li><a href="#photovoltaique">PV</a></li>
+                <li><a href="#traceur">Traceur I-V</a></li>
+                <li><a href="#circuit">Circuit</a></li>
+                <li><a href="#modelisation">Modélisation</a></li>
+                <li><a href="#nelder-mead">Nelder-Mead</a></li>
+                <li><a href="#resultats">Résultats</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-graduation-cap"></i>
+                Projet de Fin d'Études — Master 2 Électronique
+            </div>
+            <h1>Modélisation et Caractérisation des Courbes I-V d'un Panneau Photovoltaïque via IoT</h1>
+            <p>Conception d'une carte intelligente basée sur <strong>ESP32</strong> pour l'acquisition, la modélisation à une diode et l'extraction des paramètres électriques du panneau PV à l'aide de l'algorithme d'optimisation <strong>Nelder-Mead</strong>.</p>
+            <div class="hero-meta">
+                <span><i class="fas fa-user"></i> Erkeman</span>
+                <span><i class="fas fa-university"></i> USTO-MB Oran</span>
+                <span><i class="fas fa-microchip"></i> Département Électronique</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- SECTION 1: Contexte Énergétique -->
+        <section id="contexte">
+            <h2><i class="fas fa-globe"></i> Contexte Énergétique et Enjeux</h2>
+            <p>
+                L'énergie joue un rôle central dans le développement économique et social des sociétés modernes. Cependant, 
+                les systèmes énergétiques actuels reposent principalement sur l'exploitation des <strong>ressources fossiles</strong> 
+                (pétrole, gaz naturel, charbon), qui demeurent limitées et non renouvelables. Cette situation soulève d'importants 
+                enjeux environnementaux et sanitaires, notamment à travers les émissions de gaz à effet de serre responsables du 
+                réchauffement climatique.
+            </p>
+
+            <div class="info-box">
+                <h4><i class="fas fa-lightbulb"></i> Objectifs de la transition énergétique</h4>
+                <p>
+                    La transition vers l'énergie durable vise à transformer le système énergétique mondial afin de lutter contre 
+                    le changement climatique tout en favorisant le développement durable. Elle repose sur trois piliers : 
+                    la <span class="highlight">décarbonation</span> (abandon progressif des combustibles fossiles), 
+                    l'<span class="highlight">efficacité énergétique</span> (réduction des pertes) et 
+                    la <span class="highlight">sécurité d'approvisionnement</span> (diversification des sources).
+                </p>
+            </div>
+
+            <h3>Les Énergies Renouvelables (ENR)</h3>
+            <p>
+                Les énergies renouvelables sont des sources d'énergie issues de ressources naturelles qui se renouvellent continuellement 
+                à l'échelle humaine. Contrairement aux combustibles fossiles, leur exploitation génère nettement moins d'émissions de 
+                gaz à effet de serre. On distingue plusieurs filières majeures :
+            </p>
+            <ul>
+                <li><strong>Solaire photovoltaïque et thermique</strong> : conversion du rayonnement solaire en électricité ou en chaleur.</li>
+                <li><strong>Éolienne</strong> : transformation de l'énergie cinétique du vent en énergie mécanique puis électrique.</li>
+                <li><strong>Hydroélectricité</strong> : exploitation de l'énergie de l'eau en mouvement via des turbines.</li>
+                <li><strong>Bioénergie</strong> : valorisation de la biomasse (bois, résidus agricoles, déchets organiques).</li>
+                <li><strong>Géothermie</strong> : captage de la chaleur naturelle du sous-sol terrestre.</li>
+            </ul>
+
+            <p>
+                Parmi ces filières, le <strong>solaire photovoltaïque</strong> connaît une croissance exceptionnelle en raison de la 
+                disponibilité abondante du rayonnement solaire, de la modularité des installations et de la baisse continue des coûts 
+                de fabrication des modules. Néanmoins, la production dépend du niveau d'ensoleillement, ce qui introduit une 
+                <span class="highlight">variabilité</span> nécessitant une gestion adaptée du réseau et des solutions de stockage.
+            </p>
+        </section>
+
+        <!-- SECTION 2: Photovoltaïque -->
+        <section id="photovoltaique">
+            <h2><i class="fas fa-sun"></i> Le Solaire Photovoltaïque : Principes et Modélisation</h2>
+
+            <h3>L'effet photovoltaïque</h3>
+            <p>
+                Découvert par Antoine Becquerel en 1839, l'effet photovoltaïque consiste en la génération d'une tension électrique 
+                dans un matériau semi-conducteur sous l'effet d'un rayonnement lumineux. Le mécanisme fondamental repose sur 
+                l'interaction photon-matière :
+            </p>
+            <ol>
+                <li>Un photon incident, d'énergie <em>hν</em> supérieure à l'énergie de la bande interdite <em>E<sub>g</sub></em>, est absorbé.</li>
+                <li>Il transmet son énergie à un électron de la bande de valence, qui est excité vers la bande de conduction.</li>
+                <li>Une lacune (« trou ») est créée dans la bande de valence.</li>
+                <li>Le champ électrique interne de la jonction p-n sépare les porteurs de charge.</li>
+                <li>Des contacts métalliques collectent ces porteurs, permettant au courant de circuler dans un circuit extérieur.</li>
+            </ol>
+
+            <div class="info-box success">
+                <h4><i class="fas fa-info-circle"></i> Du point de vue de l'instrumentation</h4>
+                <p>
+                    Le comportement électrique d'une cellule ou d'un module PV est principalement caractérisé par sa relation 
+                    <strong>courant I – tension V</strong>, fortement dépendante des conditions environnementales (ensoleillement et température). 
+                    La connaissance précise de cette courbe est essentielle pour le diagnostic, l'optimisation et le dimensionnement des systèmes.
+                </p>
+            </div>
+
+            <h3>Technologies de cellules photovoltaïques</h3>
+            <div class="grid-2">
+                <div class="card">
+                    <h4><i class="fas fa-gem"></i> Silicium monocristallin</h4>
+                    <p>Cellules élaborées à partir d'un unique cristal de silicium. Structure cristalline homogène conférant des propriétés électriques et optiques supérieures. Rendements commerciaux : <strong>18 – 22 %</strong>. Stabilité élevée des paramètres mesurables.</p>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-th"></i> Silicium polycristallin</h4>
+                    <p>Fabriquées à partir de silicium polycristallin (multiples cristaux). Procédé moins coûteux mais présence de joints de grains limitant le rendement. Rapport coût-performance avantageux. Part significative du marché mondial.</p>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-layer-group"></i> Cellules en couches minces</h4>
+                    <p>Dépôt de semi-conducteurs sur substrat (verre, plastique, métal). Technologies CdTe, CIGS, silicium amorphe. Réduction drastique de la matière première. Adaptées aux applications intégrées au bâtiment (BIPV).</p>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-leaf"></i> Cellules organiques (OPV)</h4>
+                    <p>Semi-conducteurs organiques déposés en solution. Compatibles avec des substrats flexibles et de grande surface. Rendements en laboratoire approchant <strong>20 %</strong> en tandem. Défi principal : la stabilité opérationnelle à long terme.</p>
+                </div>
+            </div>
+
+            <h3>Modèle électrique à une diode</h3>
+            <p>
+                Une cellule photovoltaïque peut être modélisée comme un <strong>générateur de courant</strong> proportionnel à l'éclairement 
+                (<em>I<sub>ph</sub></em>), placé en parallèle avec une diode modélisant les caractéristiques de la jonction p-n à l'obscurité. 
+                En pratique, deux résistances parasites altèrent la caractéristique idéale :
+            </p>
+            <ul>
+                <li><strong>Résistance série R<sub>s</sub></strong> : modélise les résistances ohmiques internes (résistivité du semi-conducteur, contacts métalliques, doigts collecteurs).</li>
+                <li><strong>Résistance shunt R<sub>sh</sub></strong> : traduit les courants de fuite parallèles (défauts de fabrication, courants de surface).</li>
+            </ul>
+
+            <div class="formula-box">
+                I = I<sub>ph</sub> − I<sub>0</sub> [ exp( q(V + R<sub>s</sub>I) / (n k T) ) − 1 ] − (V + R<sub>s</sub>I) / R<sub>sh</sub>
+            </div>
+
+            <p style="text-align:center; color: var(--text-light); font-size: 0.9rem;">
+                Équation fondamentale du modèle à une diode avec résistances parasites.<br>
+                <em>I<sub>0</sub></em> = courant de saturation | <em>n</em> = facteur d'idéalité | <em>q</em> = charge de l'électron | 
+                <em>k</em> = constante de Boltzmann | <em>T</em> = température absolue
+            </p>
+
+            <h4>Paramètres caractéristiques extraits de la courbe I-V</h4>
+            <div class="stats-grid">
+                <div class="stat">
+                    <div class="stat-label">Courant de court-circuit</div>
+                    <div class="stat-value">I<sub>sc</sub></div>
+                    <div class="stat-label">Courant max (V=0)</div>
+                </div>
+                <div class="stat orange">
+                    <div class="stat-label">Tension circuit ouvert</div>
+                    <div class="stat-value">V<sub>oc</sub></div>
+                    <div class="stat-label">Tension max (I=0)</div>
+                </div>
+                <div class="stat purple">
+                    <div class="stat-label">Puissance maximale</div>
+                    <div class="stat-value">P<sub>max</sub></div>
+                    <div class="stat-label">Au point MPP</div>
+                </div>
+                <div class="stat green">
+                    <div class="stat-label">Facteur de forme</div>
+                    <div class="stat-value">FF</div>
+                    <div class="stat-label">Qualité du module</div>
+                </div>
+            </div>
+
+            <div class="info-box warning">
+                <h4><i class="fas fa-exclamation-triangle"></i> Pourquoi extraire les 5 paramètres internes ?</h4>
+                <p>
+                    Le constructeur fournit uniquement 4 grandeurs (V<sub>oc</sub>, I<sub>sc</sub>, V<sub>opt</sub>, I<sub>opt</sub>). 
+                    Pourtant, la connaissance des paramètres internes (<strong>R<sub>s</sub>, R<sub>sh</sub>, n, I<sub>0</sub>, I<sub>ph</sub></strong>) 
+                    est <span class="highlight">essentielle</span> pour la simulation numérique, le diagnostic des défaillances 
+                    (points chauds, délaminage, augmentation de R<sub>s</sub>…) et l'optimisation du rendement énergétique.
+                </p>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Traceur I-V -->
+        <section id="traceur">
+            <h2><i class="fas fa-chart-line"></i> Caractérisation par les Courbes I-V et P-V</h2>
+
+            <p>
+                La courbe courant-tension (I-V) d'un module photovoltaïque représente graphiquement l'évolution du courant de sortie 
+                en fonction de la tension appliquée à ses bornes, sous des conditions d'ensoleillement et de température données. 
+                La courbe puissance-tension (P-V) s'en déduit par la relation <span class="formula-inline">P = V × I</span>.
+            </p>
+
+            <h3>Les différentes méthodes de tracé</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Méthode</th>
+                            <th>Principe</th>
+                            <th>Avantages</th>
+                            <th>Inconvénients</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Résistance variable</strong></td>
+                            <td>Charge résistive variable de 0 à ∞</td>
+                            <td>Simple, économique</td>
+                            <td>Lente, sensible aux variations environnementales</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Charge électronique (MOSFET)</strong></td>
+                            <td>MOSFET en mode linéaire commandé par µC</td>
+                            <td>Rapide, précise, automatisée</td>
+                            <td>Coût modéré, dissipation thermique</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Capacitive</strong></td>
+                            <td>Condensateur comme charge balayante</td>
+                            <td>Très rapide (ms), adaptée au dynamique</td>
+                            <td>Dimensionnement critique, pas de mesures continues</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Convertisseur DC-DC</strong></td>
+                            <td>Buck/Boost/SEPIC avec modulation du rapport cyclique</td>
+                            <td>Efficace énergétiquement, temps réel</td>
+                            <td>Complexe, expertise en électronique de puissance</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Choix de la méthode adoptée dans ce projet</h3>
+            <p>
+                Pour ce projet, nous avons opté pour une <strong>méthode hybride combinant une charge électronique à base de MOSFET 
+                et un microcontrôleur ESP32</strong>. Ce choix s'appuie sur plusieurs considérations pratiques :
+            </p>
+
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-num">1</div>
+                    <div class="feature-content">
+                        <h4>Rapport coût-performance</h4>
+                        <p>Les MOSFET de puissance modernes offrent des caractéristiques excellentes à coût modéré, avec des résistances R<sub>DS(on)</sub> faibles et des temps de commutation rapides.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-num">2</div>
+                    <div class="feature-content">
+                        <h4>Contrôle précis</h4>
+                        <p>Le fonctionnement du MOSFET en mode linéaire permet une variation continue et précise de la charge équivalente, offrant une résolution supérieure aux méthodes à résistances discrètes.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-num">3</div>
+                    <div class="feature-content">
+                        <h4>Protection du module</h4>
+                        <p>Le MOSFET permet d'implémenter facilement des protections contre les surintensités et les surtensions, préservant l'intégrité du module PV pendant les mesures.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-num">4</div>
+                    <div class="feature-content">
+                        <h4>Facilité d'intégration IoT</h4>
+                        <p>La commande par tension de grille se prête naturellement à une interface avec l'ESP32, permettant une automatisation complète et la transmission sans fil des données.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: Circuit -->
+        <section id="circuit">
+            <h2><i class="fas fa-microchip"></i> Conception du Circuit Électronique de Mesure</h2>
+
+            <p>
+                Le système de traceur I-V intelligent repose sur une architecture compacte et modulaire. Le cœur du système 
+                est le <strong>microcontrôleur ESP32</strong>, qui assure simultanément l'acquisition des données, la commande 
+                de la charge électronique et la connectivité WiFi/MQTT.
+            </p>
+
+            <h3>Schéma électronique complet</h3>
+            <div class="img-container">
+                <img src="circuit.png" alt="Schéma électronique complet du traceur I-V">
+                <div class="img-caption">
+                    Circuit complet : pont diviseur de tension (R1=82kΩ / R2=10kΩ), shunt 0,056Ω, MOSFET IRF1010F, 
+                    amplificateur TL034, filtres RC anti-repliement (1kΩ, 100nF), capteur DHT11 et ESP32.
+                </div>
+            </div>
+
+            <h3>Chaîne de mesure tension</h3>
+            <ul>
+                <li><strong>Pont diviseur</strong> : R<sub>1</sub> = 82 kΩ / R<sub>2</sub> = 10 kΩ (rapport ~9,2)</li>
+                <li><strong>Entrée ADC</strong> : GPIO34 (ESP32), résolution 12 bits</li>
+                <li><strong>Filtre RC</strong> anti-repliement (1 kΩ, 100 nF)</li>
+                <li><strong>Plage de mesure</strong> : 0 – 10,2 V (V<sub>oc</sub> du panneau)</li>
+            </ul>
+
+            <h3>Chaîne de mesure courant</h3>
+            <ul>
+                <li><strong>Shunt de précision</strong> : 0,056 Ω pour la mesure du courant I<sub>pv</sub></li>
+                <li><strong>Amplificateur TL034</strong> pour l'adaptation de niveau et le gain</li>
+                <li><strong>Entrée ADC</strong> : GPIO35 (ESP32)</li>
+                <li><strong>Plage de mesure</strong> : 0 – 3,08 A (I<sub>sc</sub> du panneau)</li>
+            </ul>
+
+            <h3>Commande de charge (MOSFET)</h3>
+            <ul>
+                <li><strong>MOSFET IRF1010F</strong> fonctionnant en mode linéaire comme charge variable</li>
+                <li><strong>DAC interne ESP32</strong> (ou MCP4725 externe 12 bits) pour la commande de grille</li>
+                <li>Variation progressive de la tension de grille permettant de balayer toute la courbe I-V</li>
+                <li>Temps de balayage optimisé pour minimiser l'effet des variations d'irradiance</li>
+            </ul>
+
+            <h3>Architecture IoT complète</h3>
+            <p>
+                Les données acquises par l'ESP32 sont transmises en temps réel vers un <strong>broker MQTT</strong> (10.35.4.100:1883) 
+                via le protocole WiFi. Deux topics principaux sont utilisés :
+            </p>
+            <ul>
+                <li><code>pv/iv</code> : transmission des couples (V, I) sous format CSV pour le tracé des courbes</li>
+                <li><code>pv/params</code> : diffusion des paramètres extraits (R<sub>s</sub>, R<sub>sh</sub>, n, I<sub>0</sub>, I<sub>ph</sub>)</li>
+            </ul>
+
+            <h3>Interface web de visualisation</h3>
+            <div class="img-container">
+                <img src="interface-web.png" alt="Interface web du traceur I-V">
+                <div class="img-caption">
+                    Interface web temps réel affichant Voc, Isc, Pmax et le tracé interactif de la courbe I-V. 
+                    Accessible depuis PC, tablette et smartphone via connexion MQTT.
+                </div>
+            </div>
+            <p>
+                Une <strong>interface web responsive</strong>, accessible depuis PC, tablette ou smartphone, s'abonne à ces topics 
+                pour afficher en temps réel les courbes I-V et P-V, ainsi que les indicateurs de performance (V<sub>oc</sub>, I<sub>sc</sub>, P<sub>max</sub>).
+            </p>
+        </section>
+
+        <!-- SECTION 5: Modélisation -->
+        <section id="modelisation">
+            <h2><i class="fas fa-square-root-variable"></i> Modélisation Mathématique et Extraction des Paramètres</h2>
+
+            <p>
+                L'objectif central de ce PFE est de déterminer les <strong>5 paramètres inconnus</strong> du modèle à une diode 
+                à partir des seules données constructeur (V<sub>oc</sub>, I<sub>sc</sub>, V<sub>opt</sub>, I<sub>opt</sub>). 
+                Ces paramètres sont :
+            </p>
+
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                <div class="stat" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+                    <div class="stat-label">Résistance série</div>
+                    <div class="stat-value" style="font-size:1.3rem;">R<sub>s</sub></div>
+                </div>
+                <div class="stat" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                    <div class="stat-label">Résistance shunt</div>
+                    <div class="stat-value" style="font-size:1.3rem;">R<sub>sh</sub></div>
+                </div>
+                <div class="stat" style="background: linear-gradient(135deg, #ec4899, #db2777);">
+                    <div class="stat-label">Facteur d'idéalité</div>
+                    <div class="stat-value" style="font-size:1.3rem;">n</div>
+                </div>
+                <div class="stat" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                    <div class="stat-label">Courant saturation</div>
+                    <div class="stat-value" style="font-size:1.3rem;">I<sub>0</sub></div>
+                </div>
+                <div class="stat" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <div class="stat-label">Courant photo</div>
+                    <div class="stat-value" style="font-size:1.3rem;">I<sub>ph</sub></div>
+                </div>
+            </div>
+
+            <h3>Modèle à une diode avec coefficients c₁ et c₂</h3>
+            <p>
+                Afin de simplifier l'ajustement aux points constructeur, le modèle à une diode peut s'écrire sous une forme 
+                paramétrée utilisant deux coefficients intermédiaires <strong>c₁</strong> et <strong>c₂</strong>, calculés directement 
+                à partir des quatre grandeurs connues (V<sub>oc</sub>, I<sub>sc</sub>, V<sub>m</sub>, I<sub>m</sub>) :
+            </p>
+
+            <div class="formula-box">
+                <div style="margin-bottom: 24px;">
+                    I(V) = I<sub>sc</sub> [ 1 − c<sub>1</sub> ( exp( <span class="frac"><span class="frac-num">V</span><span class="frac-den">c<sub>2</sub> V<sub>oc</sub></span></span> ) − 1 ) ]
+                </div>
+                <div style="margin-bottom: 24px;">
+                    c<sub>2</sub> = <span class="frac">
+                        <span class="frac-num"><span class="frac"><span class="frac-num">V<sub>m</sub></span><span class="frac-den">V<sub>oc</sub></span></span> − 1</span>
+                        <span class="frac-den">ln( 1 − <span class="frac"><span class="frac-num">I<sub>m</sub></span><span class="frac-den">I<sub>sc</sub></span></span> )</span>
+                    </span>
+                </div>
+                <div>
+                    c<sub>1</sub> = ( 1 − <span class="frac"><span class="frac-num">I<sub>m</sub></span><span class="frac-den">I<sub>sc</sub></span></span> ) · exp( − <span class="frac"><span class="frac-num">V<sub>m</sub></span><span class="frac-den">c<sub>2</sub> V<sub>oc</sub></span></span> )
+                </div>
+            </div>
+
+            <p style="text-align:center; color: var(--text-light); font-size: 0.9rem;">
+                Équations du modèle à une diode paramétré par les coefficients c₁ et c₂, déduits des quatre points constructeur.<br>
+                <em>V<sub>m</sub></em> et <em>I<sub>m</sub></em> correspondent respectivement à la tension et au courant au point de puissance maximale (MPP).
+            </p>
+
+            <h3>Approche par optimisation numérique</h3>
+            <p>
+                L'équation du modèle à une diode est <strong>transcendante et non linéaire</strong> : le courant I apparaît des deux côtés 
+                de l'équation à cause du terme <span class="formula-inline">R<sub>s</sub>·I</span>. Il n'existe pas de solution analytique 
+                directe pour extraire les 5 paramètres simultanément. On fait donc appel à un <strong>algorithme d'optimisation</strong> 
+                qui minimise l'écart entre le modèle mathématique et les points de mesure expérimentaux (ou constructeur).
+            </p>
+
+            <div class="formula-box">
+                min<sub>(Rs,Rsh,n,I0,Iph)</sub> &nbsp; Σ<sub>k=1</sub><sup>N</sup> [ I<sub>mesuré</sub>(V<sub>k</sub>) − I<sub>modèle</sub>(V<sub>k</sub>, R<sub>s</sub>, R<sub>sh</sub>, n, I<sub>0</sub>, I<sub>ph</sub>) ]²
+            </div>
+
+            <p style="text-align:center; color: var(--text-light); font-size: 0.9rem;">
+                Fonction coût à minimiser : somme des erreurs quadratiques entre mesures et modèle sur N points.
+            </p>
+
+            <h3>Critères de validation du modèle</h3>
+            <p>Une fois les paramètres extraits, la qualité de l'ajustement est évaluée par plusieurs indicateurs statistiques :</p>
+            <ul>
+                <li><strong>RMSE</strong> (Root Mean Square Error) : erreur quadratique moyenne entre courbe modèle et courbe expérimentale</li>
+                <li><strong>Coefficient de corrélation R</strong> (Pearson) : linéarité entre données modélisées et mesurées</li>
+                <li><strong>R²</strong> (coefficient de détermination) : proportion de la variance expliquée par le modèle</li>
+                <li><strong>Erreur relative</strong> : écart relatif moyen en pourcentage</li>
+            </ul>
+        </section>
+
+        <!-- SECTION 6: Nelder-Mead -->
+        <section id="nelder-mead">
+            <h2><i class="fas fa-brain"></i> Pourquoi l'Algorithme de Nelder-Mead ?</h2>
+
+            <div class="info-box">
+                <h4><i class="fas fa-quote-left"></i> Réponse selon le cahier des charges</h4>
+                <p style="font-size:1.05rem; font-style:italic;">
+                    « C'est une méthode qui <strong>ne nécessite pas le calcul de gradients</strong>, ce qui la rend très efficace 
+                    pour extraire les paramètres (R<sub>s</sub>, R<sub>sh</sub>) d'un panneau <strong>sans être bloqué par des problèmes 
+                    de convergence mathématique</strong>. »
+                </p>
+            </div>
+
+            <p>
+                L'algorithme de <strong>Nelder-Mead</strong>, également connu sous le nom de <em>downhill simplex method</em>, est une 
+                méthode d'optimisation numérique directe (ou « derivative-free »). Il a été choisi comme pilier de ce projet pour 
+                des raisons qui répondent parfaitement aux contraintes du problème physique posé par la modélisation des panneaux 
+                photovoltaïques.
+            </p>
+
+            <h3>Les contraintes du problème PV</h3>
+            <p>La fonction coût à minimiser dans l'extraction des paramètres PV présente plusieurs difficultés :</p>
+            <ul>
+                <li><strong>Non-linéarité forte</strong> : la relation I-V contient une exponentielle et des produits de variables.</li>
+                <li><strong>Paramètres de natures différentes</strong> : R<sub>s</sub> est très petit (mΩ à Ω), R<sub>sh</sub> est très grand (centaines d'Ω), n est adimensionnel (~1-2), I<sub>0</sub> est extrêmement faible (µA à nA).</li>
+                <li><strong>Gradient difficile à calculer</strong> : la dérivée partielle de l'équation transcendante par rapport à chaque paramètre est complexe et coûteuse numériquement.</li>
+                <li><strong>Risque de minima locaux</strong> : l'espace des paramètres peut présenter des zones où la fonction coût est plate ou possède des minima secondaires.</li>
+            </ul>
+
+            <h3>Principe de fonctionnement</h3>
+            <p>
+                Au lieu de calculer des dérivées, Nelder-Mead utilise un <strong>simplexe</strong> (un polytope à n+1 sommets dans un 
+                espace de dimension n) qui se déforme et se déplace dans l'espace de recherche pour trouver le minimum. Pour nos 
+                5 paramètres, le simplexe est un ensemble de 6 points (vecteurs de paramètres) évalués à chaque itération.
+            </p>
+
+            <div class="algo-step" data-step="1">
+                <h4>Classement</h4>
+                <p>Évaluer la fonction coût en chaque sommet du simplexe. Classer les sommets du meilleur (plus faible coût) au pire (plus fort coût).</p>
+            </div>
+            <div class="algo-step" data-step="2">
+                <h4>Centroïde</h4>
+                <p>Calculer le centroïde (barycentre) de tous les sommets <strong>excepté le pire</strong>. Ce point représente la direction prometteuse.</p>
+            </div>
+            <div class="algo-step" data-step="3">
+                <h4>Réflexion</h4>
+                <p>Réfléchir le pire sommet à travers le centroïde. Si le nouveau point est meilleur que le second pire mais pas meilleur que le meilleur, le remplacer.</p>
+            </div>
+            <div class="algo-step" data-step="4">
+                <h4>Expansion</h4>
+                <p>Si le point réfléchi est <strong>meilleur que le meilleur actuel</strong>, essayer d'aller encore plus loin dans cette direction (expansion). Cela accélère la convergence dans les zones favorables.</p>
+            </div>
+            <div class="algo-step" data-step="5">
+                <h4>Contraction</h4>
+                <p>Si le point réfléchi est mauvais, essayer une <strong>contraction</strong> (externe ou interne) vers le centroïde pour réduire le simplexe.</p>
+            </div>
+            <div class="algo-step" data-step="6">
+                <h4>Retréciissement</h4>
+                <p>Si aucune des opérations précédentes n'améliore la situation, <strong>rétrécir</strong> le simplexe vers le meilleur sommet et recommencer.</p>
+            </div>
+
+            <h3>Avantages spécifiques pour l'extraction PV</h3>
+            <div class="grid-2">
+                <div class="card">
+                    <h4><i class="fas fa-ban"></i> Sans calcul de gradient</h4>
+                    <p>Contrairement aux méthodes de Newton ou Levenberg-Marquardt, Nelder-Mead n'exige pas le calcul des dérivées partielles. C'est crucial car l'équation à une diode avec 5 paramètres rend le Jacobian complexe et sujet aux instabilités numériques.</p>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-mountain"></i> Robustesse aux minima locaux</h4>
+                    <p>La nature géométrique du simplexe lui permet de « contourner » certains minima locaux et de continuer à explorer l'espace, contrairement aux méthodes purement locales basées sur le gradient.</p>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-sliders-h"></i> Tolérance aux échelles hétérogènes</h4>
+                    <p>Le simplexe s'adapte naturellement aux ordres de grandeur très différents entre R<sub>s</sub> (10<sup>-2</sup>), R<sub>sh</sub> (10<sup>2</sup>) et I<sub>0</sub> (10<sup>-6</sup>), sans nécessiter de normalisation complexe.</p>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-bolt"></i> Rapidité de convergence</h4>
+                    <p>Pour un problème à 5 dimensions avec une fonction coût bien définie, Nelder-Mead converge en quelques centaines d'évaluations, ce qui est parfaitement acceptable pour un traitement embarqué sur ESP32 ou un post-traitement MATLAB.</p>
+                </div>
+            </div>
+
+            <div class="info-box success">
+                <h4><i class="fas fa-check-circle"></i> En résumé</h4>
+                <p>
+                    Le choix de <strong>Nelder-Mead</strong> est justifié par la nature <em>derivative-free</em>, la robustesse 
+                    et la simplicité d'implémentation de l'algorithme face à un problème d'optimisation multi-paramètres, 
+                    fortement non linéaire et soumis à des contraintes physiques réelles. Il permet d'extraire fidèlement 
+                    <strong>R<sub>s</sub></strong> et <strong>R<sub>sh</sub></strong> sans risque de divergence lié au calcul 
+                    de gradients, assurant ainsi une convergence stable vers les vraies valeurs physiques du panneau.
+                </p>
+            </div>
+        </section>
+
+        <!-- SECTION 7: Résultats -->
+        <section id="resultats">
+            <h2><i class="fas fa-chart-area"></i> Résultats Expérimentaux et Validation</h2>
+
+            <h3>Grandeurs mesurées (conditions réelles)</h3>
+            <div class="stats-grid">
+                <div class="stat">
+                    <i class="fas fa-bolt" style="font-size:1.5rem; opacity:0.9;"></i>
+                    <div class="stat-label">Tension Circuit Ouvert</div>
+                    <div class="stat-value">10.20 V</div>
+                    <div class="stat-label">V<sub>oc</sub></div>
+                </div>
+                <div class="stat orange">
+                    <i class="fas fa-wave-square" style="font-size:1.5rem; opacity:0.9;"></i>
+                    <div class="stat-label">Courant Court-Circuit</div>
+                    <div class="stat-value">3.08 A</div>
+                    <div class="stat-label">I<sub>sc</sub></div>
+                </div>
+                <div class="stat purple">
+                    <i class="fas fa-tachometer-alt" style="font-size:1.5rem; opacity:0.9;"></i>
+                    <div class="stat-label">Puissance Maximale</div>
+                    <div class="stat-value">≈ 56 W</div>
+                    <div class="stat-label">P<sub>max</sub> = V<sub>opt</sub> × I<sub>opt</sub></div>
+                </div>
+                <div class="stat green">
+                    <i class="fas fa-battery-full" style="font-size:1.5rem; opacity:0.9;"></i>
+                    <div class="stat-label">Rendement estimé</div>
+                    <div class="stat-value">~17 %</div>
+                    <div class="stat-label">Sous 1000 W/m²</div>
+                </div>
+            </div>
+
+            <h3>Superposition modèle vs données de référence (MATLAB)</h3>
+            <p>
+                L'algorithme de Nelder-Mead implémenté sous MATLAB a convergé après <strong>800 itérations</strong> et <strong>1275 évaluations</strong> 
+                de la fonction coût. La figure ci-dessous montre la superposition parfaite entre la courbe de référence (AKBABA) et 
+                le modèle à une diode optimisé :
+            </p>
+
+            <div class="img-container">
+                <img src="courbe-matlab.png" alt="Comparaison modèle 1 diode vs référence AKBABA sous MATLAB">
+                <div class="img-caption">
+                    Comparaison des modèles I-V : AKBABA (référence, trait plein noir) vs modèle à 1 diode optimisé par Nelder-Mead 
+                    (trait bleu pointillé). Les étoiles marquent les points constructeur. Convergence obtenue en 800 itérations.
+                </div>
+            </div>
+
+            <h3>Paramètres extraits par Nelder-Mead</h3>
+            <p>
+                L'algorithme a convergé vers les valeurs suivantes, reproduisant fidèlement la courbe expérimentale :
+            </p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4><i class="fas fa-minus"></i> Résistance série R<sub>s</sub></h4>
+                    <div class="stat-value" style="color: var(--primary); font-size: 2rem; margin: 10px 0;">0,0175 Ω</div>
+                    <p style="font-size:0.9rem; color: var(--text-light);">Très faible, traduisant de bons contacts et une faible résistivité interne.</p>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-minus"></i> Résistance shunt R<sub>sh</sub></h4>
+                    <div class="stat-value" style="color: var(--primary); font-size: 2rem; margin: 10px 0;">424,97 Ω</div>
+                    <p style="font-size:0.9rem; color: var(--text-light);">Élevée, indiquant des fuites de courant négligeables et une bonne qualité de jonction.</p>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-minus"></i> Facteur d'idéalité n</h4>
+                    <div class="stat-value" style="color: var(--primary); font-size: 2rem; margin: 10px 0;">1,5504</div>
+                    <p style="font-size:0.9rem; color: var(--text-light);">Proche de la plage typique (1–2) pour le silicium cristallin.</p>
+                </div>
+                <div class="card">
+                    <h4><i class="fas fa-minus"></i> Courant de saturation I<sub>0</sub></h4>
+                    <div class="stat-value" style="color: var(--primary); font-size: 2rem; margin: 10px 0;">1,94×10⁻⁶ A</div>
+                    <p style="font-size:0.9rem; color: var(--text-light);">Courant de fuite extrêmement faible, caractéristique d'une diode de qualité.</p>
+                </div>
+                <div class="card" style="grid-column: 1 / -1;">
+                    <h4><i class="fas fa-minus"></i> Courant photogénéré I<sub>ph</sub></h4>
+                    <div class="stat-value" style="color: var(--primary); font-size: 2rem; margin: 10px 0;">9,006 A</div>
+                    <p style="font-size:0.9rem; color: var(--text-light);">Légèrement supérieur à I<sub>sc</sub> mesuré, ce qui est physiquement cohérent car I<sub>ph</sub> ≈ I<sub>sc</sub> + I<sub>D</sub> + I<sub>sh</sub>.</p>
+                </div>
+            </div>
+
+            <h3>Formules des indicateurs statistiques</h3>
+            <p>
+                Les notations utilisées sont les suivantes : <strong>I<sub>modèle</sub></strong> désigne le courant calculé par le modèle à une diode, 
+                <strong>I<sub>référence</sub></strong> désigne le courant de référence (données AKBABA ou mesures expérimentales), 
+                et <strong>Ī</strong> représente la valeur moyenne d'un ensemble de données.
+            </p>
+
+            <div class="formula-box">
+                <div style="margin-bottom: 28px;">
+                    <div style="font-size: 1.15rem; margin-bottom: 12px;">
+                        <span class="sqrt"><span class="sqrt-symbol">√</span><span class="sqrt-content">
+                            <span class="frac">
+                                <span class="frac-num">1</span>
+                                <span class="frac-den">N</span>
+                            </span>
+                            <span class="sum-symbol">∑</span><sub style="font-size:0.7em;">i=1</sub><sup style="font-size:0.7em;">N</sup>
+                            ( I<sub>modèle,i</sub> − I<sub>référence,i</sub> )²
+                        </span></span>
+                    </div>
+                    <div style="font-weight: 600; color: var(--primary);">RMSE (Root Mean Square Error)</div>
+                </div>
+
+                <div style="margin-bottom: 28px;">
+                    <div style="font-size: 1.05rem; margin-bottom: 12px;">
+                        R = <span class="frac">
+                            <span class="frac-num">
+                                <span class="sum-symbol">∑</span><sub style="font-size:0.7em;">i=1</sub><sup style="font-size:0.7em;">N</sup>
+                                (I<sub>modèle,i</sub> − Ī<sub>modèle</sub>)(I<sub>référence,i</sub> − Ī<sub>référence</sub>)
+                            </span>
+                            <span class="frac-den">
+                                <span class="sqrt"><span class="sqrt-symbol">√</span><span class="sqrt-content">
+                                    <span class="sum-symbol">∑</span><sub style="font-size:0.7em;">i=1</sub><sup style="font-size:0.7em;">N</sup>
+                                    (I<sub>modèle,i</sub> − Ī<sub>modèle</sub>)²
+                                </span></span>
+                                ·
+                                <span class="sqrt"><span class="sqrt-symbol">√</span><span class="sqrt-content">
+                                    <span class="sum-symbol">∑</span><sub style="font-size:0.7em;">i=1</sub><sup style="font-size:0.7em;">N</sup>
+                                    (I<sub>référence,i</sub> − Ī<sub>référence</sub>)²
+                                </span></span>
+                            </span>
+                        </span>
+                    </div>
+                    <div style="font-weight: 600; color: var(--primary);">Coefficient de corrélation R (Pearson)</div>
+                    <div style="font-size: 0.85rem; color: var(--text-light); margin-top: 6px;">
+                        où Ī<sub>référence</sub> et Ī<sub>modèle</sub> sont les valeurs moyennes (somme de toutes les valeurs ÷ nombre de valeurs)
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-size: 1.15rem; margin-bottom: 12px;">
+                        Erreur relative (%) = <span class="frac">
+                            <span class="frac-num">RMSE</span>
+                            <span class="frac-den">I<sub>sc</sub></span>
+                        </span> × 100
+                    </div>
+                    <div style="font-weight: 600; color: var(--primary);">Erreur relative normalisée au courant de court-circuit</div>
+                </div>
+            </div>
+
+            <h3>Résultats des indicateurs statistiques</h3>
+            <div class="stats-grid">
+                <div class="stat" style="background: linear-gradient(135deg,#0ea5e9,#0284c7);">
+                    <i class="fas fa-chart-bar" style="font-size:1.5rem; opacity:0.9;"></i>
+                    <div class="stat-label">RMSE (courbe)</div>
+                    <div class="stat-value">17,28 mA</div>
+                </div>
+                <div class="stat green">
+                    <i class="fas fa-link" style="font-size:1.5rem; opacity:0.9;"></i>
+                    <div class="stat-label">Coefficient R (Pearson)</div>
+                    <div class="stat-value">0,99997</div>
+                </div>
+                <div class="stat purple">
+                    <i class="fas fa-percentage" style="font-size:1.5rem; opacity:0.9;"></i>
+                    <div class="stat-label">R²</div>
+                    <div class="stat-value">0,99994</div>
+                </div>
+                <div class="stat" style="background: linear-gradient(135deg,#8b5cf6,#7c3aed);">
+                    <i class="fas fa-bullseye" style="font-size:1.5rem; opacity:0.9;"></i>
+                    <div class="stat-label">Erreur Relative</div>
+                    <div class="stat-value">0,192 %</div>
+                </div>
+            </div>
+
+            <div class="info-box success">
+                <h4><i class="fas fa-trophy"></i> Conclusion de la validation</h4>
+                <p>
+                    Une erreur relative de <strong>0,192 %</strong> et un R² supérieur à <strong>0,9999</strong> prouvent de manière 
+                    irréfutable que le <strong>modèle à 1 diode</strong> associé à l'<strong>algorithme de Nelder-Mead</strong> reproduit 
+                    fidèlement le comportement réel du panneau photovoltaïque. La méthode sans gradient a permis d'extraire des 
+                    paramètres physiquement cohérents sans être perturbée par la complexité mathématique de l'équation transcendante.
+                </p>
+            </div>
+        </section>
+
+        <!-- SECTION 8: Conclusion -->
+        <section id="conclusion">
+            <h2><i class="fas fa-flag-checkered"></i> Conclusion et Perspectives</h2>
+
+            <h3>Bilan du projet</h3>
+            <p>
+                Ce projet de fin d'études a permis de concevoir et de réaliser un <strong>traceur I-V intelligent</strong> basé sur 
+                l'ESP32, capable de mesurer précisément les caractéristiques électriques d'un panneau photovoltaïque et d'en extraire 
+                les paramètres internes par optimisation numérique. Les principales réalisations sont :
+            </p>
+            <ul>
+                <li>Conception d'un <strong>circuit électronique de mesure</strong> fiable (pont diviseur, shunt, amplificateur TL034, MOSFET IRF1010F).</li>
+                <li>Mesure expérimentale des caractéristiques <strong>I-V et P-V</strong> avec une résolution de 12 bits.</li>
+                <li>Modélisation réussie par le <strong>modèle à 1 diode</strong> avec prise en compte des résistances parasites.</li>
+                <li>Extraction des 5 paramètres internes par l'<strong>algorithme d'optimisation Nelder-Mead</strong>, choisi pour sa robustesse et son absence de calcul de gradient.</li>
+                <li>Validation avec une erreur relative de <strong>0,192 %</strong> et R² = 0,9999.</li>
+                <li>Transmission IoT via <strong>MQTT</strong> et interface web responsive pour le monitoring temps réel.</li>
+            </ul>
+
+            <h3>Perspectives d'amélioration</h3>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-num" style="background: linear-gradient(135deg, #f59e0b, #d97706);">1</div>
+                    <div class="feature-content">
+                        <h4>MPPT embarqué</h4>
+                        <p>Intégration d'un algorithme de suivi du point de puissance maximale (P&O ou IncCond) basé directement sur les paramètres extraits en temps réel.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-num" style="background: linear-gradient(135deg, #f59e0b, #d97706);">2</div>
+                    <div class="feature-content">
+                        <h4>Correction environnementale</h4>
+                        <p>Ajout d'une sonde de température PT100 et d'un pyranomètre pour corriger les courbes I-V selon la norme IEC 60891 et translater vers les conditions STC.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-num" style="background: linear-gradient(135deg, #f59e0b, #d97706);">3</div>
+                    <div class="feature-content">
+                        <h4>Application mobile dédiée</h4>
+                        <p>Développement d'une application smartphone native pour le diagnostic sur site et l'historisation des mesures par QR-code du module.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-num" style="background: linear-gradient(135deg, #f59e0b, #d97706);">4</div>
+                    <div class="feature-content">
+                        <h4>Monitoring centralisé</h4>
+                        <p>Extension à un champ de plusieurs panneaux avec détection automatique des désadaptations (mismatch) et des points chauds par comparaison des paramètres extraits.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-num" style="background: linear-gradient(135deg, #f59e0b, #d97706);">5</div>
+                    <div class="feature-content">
+                        <h4>Intelligence artificielle</h4>
+                        <p>Intégration de modèles de machine learning pour le diagnostic prédictif des dégradations (jaunissement, délaminage, corrosion) à partir de l'évolution temporelle de R<sub>s</sub> et R<sub>sh</sub>.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <h3><i class="fas fa-award"></i> Merci pour votre attention</h3>
+        <p>
+            Projet de Fin d'Études — Master 2 Électronique<br>
+            <strong>USTO-MB Oran</strong> — Département Électronique<br>
+            <em>Questions & Discussions les bienvenues</em>
+        </p>
+        <div style="margin-top: 24px; opacity: 0.6; font-size: 0.85rem;">
+            <i class="fas fa-solar-panel"></i> Modélisation PV &nbsp;•&nbsp; 
+            <i class="fas fa-microchip"></i> ESP32 & IoT &nbsp;•&nbsp; 
+            <i class="fas fa-brain"></i> Optimisation Nelder-Mead
+        </div>
+    </footer>
+
+    <!-- Scroll to top -->
+    <button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script>
+        // Scroll top button visibility
+        const scrollBtn = document.getElementById('scrollTop');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 400) scrollBtn.classList.add('visible');
+            else scrollBtn.classList.remove('visible');
+        });
+
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const offset = 80;
+                    const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                    window.scrollTo({top, behavior: 'smooth'});
+                }
+            });
+        });
+    </script>
+</body>
+</html>
