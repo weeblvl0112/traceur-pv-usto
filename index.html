@@ -1244,7 +1244,6 @@
       <ul>
         <li><strong>Pont diviseur</strong> : R<sub>1</sub> = 82 kΩ / R<sub>2</sub> = 10 kΩ (rapport ~9,2)</li>
         <li><strong>Entrée ADC</strong> : GPIO34 (ESP32), résolution 12 bits</li>
-        <li><strong>Filtre RC</strong> anti-repliement (1 kΩ, 100 nF)</li>
         <li><strong>Plage de mesure</strong> : 0 – 10,2 V (V<sub>oc</sub> du panneau)</li>
       </ul>
       <h3>Chaîne de mesure courant</h3>
@@ -1254,7 +1253,7 @@
         <li><strong>Entrée ADC</strong> : GPIO35 (ESP32)</li>
         <li><strong>Plage de mesure</strong> : 0 – 3,08 A (I<sub>sc</sub> du panneau)</li>
       </ul>
-      <h3>Commande de charge (MOSFET)</h3>
+      <h3>Commande de charge </h3>
       <ul>
         <li><strong>Transistor MJ11012</strong> fonctionnant en mode linéaire comme charge variable</li>
         <li><strong>DAC interne ESP32</strong> (ou MCP4725 externe 12 bits) pour la commande de grille</li>
